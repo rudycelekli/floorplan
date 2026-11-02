@@ -413,6 +413,18 @@ function extractGo(src) {
     const p = m[2].replace(/^(GET|POST|PUT|PATCH|DELETE)\s+/, '');
     routes.push({ method, path: p, var: null, line: at(m.index) });
   }
+
+  // chi: r.Route("/articles", func(r chi.Router) { r.Get("/", list) }) puts the routes inside under its path
+  const scopes = [];
+  for (const m of all(/\.Route\(\s*"([^"]*)"\s*,\s*func\s*\([^)]*\)\s*\{/g, code)) {
+    let depth = 1, j = m.index + m[0].length;
+    for (; j < code.length && depth; j++) { if (code[j] === '{') depth++; else if (code[j] === '}') depth--; }
+    scopes.push({ from: at(m.index), to: at(j - 1), prefix: m[1] });
+  }
+  for (const r of routes) {
+    const outer = scopes.filter((sc) => r.line >= sc.from && r.line <= sc.to);
+    if (outer.length) r.path = [...outer.map((sc) => sc.prefix), r.path].join('/').replace(/\/{2,}/g, '/');
+  }
   const { calls, hosts } = extractCalls(code, at, { skip: /\.(HandleFunc|Handle|GET|POST)\(/ });
   return { imports, symbols, routes, mounts: [], calls, hosts };
 }

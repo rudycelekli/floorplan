@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **chi route groups:** endpoints declared inside `r.Route("/articles", func(r chi.Router) { … })` lost the group's path, so they all showed as `/` and some went missing, since two `GET /` in one file counted as one. They now sit under the group's path, groups inside groups too. Fixed by @rudycelekli.
+
 ## 0.6.1 (2026-11-01)
 
 - **Fewer false alarms in Health** (thanks to the user who reported these):
