@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Java, Kotlin and Scala imports of your own packages:** a wildcard import (`import com.acme.model.*`) and a Kotlin import of a top-level function (`import com.acme.util.formatPrice`) were listed as outside libraries called `com.acme.model` and `com.acme.util`. A wildcard import now links to the package's files, and nothing from your own packages is listed as an outside library. Fixed by @rudycelekli.
+
 ## 0.6.1 (2026-11-01)
 
 - **Fewer false alarms in Health** (thanks to the user who reported these):

@@ -217,12 +217,23 @@ export function createResolver(root, files) {
 
   // ---- JVM ----
   const jvmIndex = new Map();
-  for (const f of files) if (f.pkg) jvmIndex.set(`${f.pkg}.${P.basename(f.path).replace(/\.\w+$/, '')}`, f.path);
+  const jvmPkgs = new Map(); // package -> its files
+  for (const f of files) if (f.pkg) {
+    jvmIndex.set(`${f.pkg}.${P.basename(f.path).replace(/\.\w+$/, '')}`, f.path);
+    jvmPkgs.set(f.pkg, [...(jvmPkgs.get(f.pkg) || []), f.path]);
+  }
   const resolveJvm = (from, spec) => {
+    // import com.acme.model.* (Scala: ._) brings in a whole package, or a class's members
+    const wild = /\.[*_]$/.test(spec);
+    if (wild) spec = spec.slice(0, -2);
     if (jvmIndex.has(spec)) return { file: jvmIndex.get(spec) };
+    if (wild && jvmPkgs.has(spec)) return { files: jvmPkgs.get(spec) };
     if (/^(java|javax|kotlin|scala|jdk|sun)\./.test(spec)) return { builtin: true };
     const parts = spec.split('.');
     for (let k = parts.length - 1; k >= 2; k--) if (jvmIndex.has(parts.slice(0, k).join('.'))) return { file: jvmIndex.get(parts.slice(0, k).join('.')) };
+    // a top-level function or value from one of this codebase's packages (Kotlin): not an outside library,
+    // though which file declares it isn't known here
+    if (jvmPkgs.has(parts.slice(0, -1).join('.'))) return { unresolved: true };
     return { external: parts.slice(0, Math.min(3, parts.length - 1)).join('.'), eco: 'maven' };
   };
 
