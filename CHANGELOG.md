@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Rust modules aren't outside crates:** `use handlers::list;` next to `mod handlers;` (the usual way a Rust program uses its own modules) listed an outside crate called `handlers`. A `use` path that starts at a module the file declares, or at `self::`, now links to that module's file. Fixed by @rudycelekli.
+
 ## 0.6.1 (2026-11-01)
 
 - **Fewer false alarms in Health** (thanks to the user who reported these):

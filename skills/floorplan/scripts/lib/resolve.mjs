@@ -201,6 +201,10 @@ export function createResolver(root, files) {
       return { unresolved: true };
     }
     const segs = imp.spec.split('::');
+    // a module this file declares: `mod handlers;` then `use handlers::list;` (or self::handlers) is a path
+    // from here, not another crate
+    const local = segs[0] === 'self' ? segs[1] : segs[0];
+    if (byPath.get(from)?.imports?.some((i) => i.kind === 'mod' && i.spec === local)) return resolveRust(from, { kind: 'mod', spec: local });
     if (segs[0] === 'crate') {
       const cr = crateRoots.find((r) => from.startsWith(r + '/'));
       if (!cr) return { unresolved: true };
