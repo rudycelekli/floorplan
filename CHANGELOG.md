@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Node's `#` imports connect:** imports through the `"imports"` map of `package.json` (`import { db } from '#db'`, `'#lib/*'`) drew no line to the file they point at. They now link to it, including conditional targets like `{ "node": …, "default": … }`. Fixed by @rudycelekli.
+
 ## 0.6.1 (2026-11-01)
 
 - **Fewer false alarms in Health** (thanks to the user who reported these):

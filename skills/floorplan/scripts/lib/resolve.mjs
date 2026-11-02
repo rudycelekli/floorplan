@@ -55,6 +55,31 @@ export function createResolver(root, files) {
     if (pj?.name) workspacePkgs.set(pj.name, { dir, pj });
   }
 
+  // Node's subpath imports: `import { db } from '#db'` maps through the "imports" field of the nearest package.json
+  const pkgImportsCache = new Map();
+  const nearestPkgImports = (dir) => {
+    if (!pkgImportsCache.has(dir)) {
+      const file = dir === '.' ? 'package.json' : `${dir}/package.json`;
+      pkgImportsCache.set(dir, fileSet.has(file) ? { dir, map: readJsonLoose(path.join(root, file))?.imports || {} }
+        : dir === '.' || dir === '' ? null : nearestPkgImports(P.dirname(dir)));
+    }
+    return pkgImportsCache.get(dir);
+  };
+  // a target can be conditional: { "node": "./src/db.js", "default": "./src/db-browser.js" }
+  const importTarget = (t) => typeof t === 'string' ? t : t && typeof t === 'object' ? importTarget(t.node ?? t.import ?? t.default ?? t.require) : null;
+  const subpathImport = (from, spec) => {
+    const pkg = nearestPkgImports(P.dirname(from));
+    if (!pkg) return null;
+    for (const [key, value] of Object.entries(pkg.map)) {
+      const star = key.indexOf('*');
+      const matched = star === -1 ? (spec === key ? '' : null)
+        : (spec.startsWith(key.slice(0, star)) && spec.endsWith(key.slice(star + 1)) ? spec.slice(star, spec.length - (key.length - star - 1)) : null);
+      const target = matched === null ? null : importTarget(value);
+      if (target) return tryJsFile(P.join(pkg.dir, target.split('*').join(matched)));
+    }
+    return null;
+  };
+
   const tryJsFile = (p) => {
     p = P.normalize(p);
     if (fileSet.has(p) && !p.endsWith('/')) return p;
@@ -88,6 +113,7 @@ export function createResolver(root, files) {
     const parts = spec.split('/');
     const pkgName = spec.startsWith('@') ? parts.slice(0, 2).join('/') : parts[0];
     const sub = parts.slice(spec.startsWith('@') ? 2 : 1).join('/');
+    if (spec.startsWith('#')) { const hit = subpathImport(from, spec); return hit ? { file: hit } : { unresolved: true }; }
     const ws = workspacePkgs.get(pkgName);
     if (ws) {
       if (sub) { const hit = tryJsFile(P.join(ws.dir, sub)) || tryJsFile(P.join(ws.dir, 'src', sub)); if (hit) return { file: hit }; }
