@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Gin, Echo and Fiber groups:** endpoints on a route group (`v1 := r.Group("/api/v1")`, then `v1.GET("/users", …)`) showed without the group's path, as `/users` instead of `/api/v1/users`, so the website's requests could be linked to the wrong endpoint. Groups inside groups add up too. Fixed by @rudycelekli.
+
 ## 0.6.1 (2026-11-01)
 
 - **Fewer false alarms in Health** (thanks to the user who reported these):

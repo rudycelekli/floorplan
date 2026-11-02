@@ -408,13 +408,16 @@ function extractGo(src) {
   for (const m of all(/^func\s+(?:\([^)]*\)\s*)?([A-Z]\w*)/gm, code)) symbols.push({ name: m[1], kind: 'function', line: at(m.index) });
   for (const m of all(/^type\s+([A-Z]\w*)\s+(struct|interface)?/gm, code)) symbols.push({ name: m[1], kind: m[2] || 'type', line: at(m.index) });
   const routes = [];
-  for (const m of all(/\.(HandleFunc|Handle|GET|POST|PUT|PATCH|DELETE|Get|Post|Put|Patch|Delete)\(\s*"(\/[^"]*)"/g, code)) {
-    const method = /^handle/i.test(m[1]) ? 'ANY' : m[1].toUpperCase();
-    const p = m[2].replace(/^(GET|POST|PUT|PATCH|DELETE)\s+/, '');
-    routes.push({ method, path: p, var: null, line: at(m.index) });
+  // Gin, Echo and Fiber groups, nested or not: v1 := r.Group("/api/v1"), then v1.GET("/users", h) is /api/v1/users
+  const routers = {};
+  for (const m of all(/\b(\w+)\s*:?=\s*(\w+)\.Group\(\s*"([^"]*)"/g, code)) routers[m[1]] = (routers[m[2]] ?? '') + m[3];
+  for (const m of all(/(\w+)?\.(HandleFunc|Handle|GET|POST|PUT|PATCH|DELETE|Get|Post|Put|Patch|Delete)\(\s*"(\/[^"]*)"/g, code)) {
+    const method = /^handle/i.test(m[2]) ? 'ANY' : m[2].toUpperCase();
+    const p = m[3].replace(/^(GET|POST|PUT|PATCH|DELETE)\s+/, '');
+    routes.push({ method, path: p, var: Object.hasOwn(routers, m[1] ?? '') ? m[1] : null, line: at(m.index) });
   }
   const { calls, hosts } = extractCalls(code, at, { skip: /\.(HandleFunc|Handle|GET|POST)\(/ });
-  return { imports, symbols, routes, mounts: [], calls, hosts };
+  return { imports, symbols, routes, mounts: [], calls, hosts, routers };
 }
 
 // ---------- Rust ----------

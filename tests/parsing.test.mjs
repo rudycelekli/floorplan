@@ -78,6 +78,22 @@ test('flattenTemplates replaces every ${…} with a placeholder, nested or not',
   assert.equal(flattenTemplates('fetch(`${API}/users/${id}`)'), 'fetch(`${x}/users/${x}`)');
 });
 
+test('Gin, Echo and Fiber: routes on a group get the group prefix, nested groups too', async () => {
+  const { resolveRoutes } = await lib('routes.mjs');
+  const src = [
+    `func main() {`,
+    `  r := gin.Default()`,
+    `  r.GET("/health", health)`,
+    `  v1 := r.Group("/api/v1")`,
+    `  v1.GET("/users", listUsers)`,
+    `  admin := v1.Group("/admin", requireAdmin())`,
+    `  admin.DELETE("/users/:id", deleteUser)`,
+    `}`,
+  ].join('\n');
+  const f = { path: 'cmd/api/main.go', lang: 'go', ...extract(src, 'go', 'cmd/api/main.go') };
+  assert.deepEqual(resolveRoutes([f]).map((x) => `${x.method} ${x.path}`), ['GET /health', 'GET /api/v1/users', 'DELETE /api/v1/admin/users/:id']);
+});
+
 test('doc comments: JSDoc is cleaned, license headers are ignored', () => {
   assert.equal(cleanDoc('/**\n * Lists orders.\n * @param x\n */'), 'Lists orders.');
   assert.equal(cleanDoc('# Copyright 2020 Example Corp'), null);
