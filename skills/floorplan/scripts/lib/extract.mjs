@@ -360,8 +360,11 @@ function extractPy(src) {
 
   const routes = [];
   const routers = {};
-  for (const m of all(/^[ \t]*([A-Za-z_]\w*)\s*=\s*(?:\w+\.)?(Blueprint|APIRouter|Router)\(([^)]*)\)/gm, code)) {
-    routers[m[1]] = /(?:url_)?prefix\s*=\s*["']([^"']*)["']/.exec(m[3])?.[1] || '';
+  for (const m of all(/^[ \t]*([A-Za-z_]\w*)\s*=\s*(?:\w+\.)?(Blueprint|APIRouter|Router)\(/gm, code)) {
+    // the arguments, up to the call's own closing bracket: APIRouter(dependencies=[Depends(get_user)], prefix="/items")
+    let depth = 1, j = m.index + m[0].length;
+    while (j < code.length && depth && j - m.index < 2000) { if (code[j] === '(') depth++; else if (code[j] === ')') depth--; j++; }
+    routers[m[1]] = /(?:url_)?prefix\s*=\s*["']([^"']*)["']/.exec(code.slice(m.index + m[0].length, j - 1))?.[1] || '';
   }
   for (const m of all(/^[ \t]*@([A-Za-z_]\w*)\.(route|get|post|put|patch|delete|api_route|websocket)\(\s*[rf]?["']([^"']*)["']([^\n]*)/gm, code)) {
     let methods = [m[2].toUpperCase()];

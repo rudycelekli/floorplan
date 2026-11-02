@@ -58,6 +58,18 @@ test('FastAPI: router prefix and path parameters', () => {
   assert.deepEqual(r.routers, { router: '/items' });
 });
 
+test('FastAPI: the router prefix is found after dependencies that call Depends()', () => {
+  const r = extract([
+    `from fastapi import APIRouter, Depends`,
+    `router = APIRouter(dependencies=[Depends(get_current_user)], prefix="/items", tags=["items"])`,
+    `admin = APIRouter(`,
+    `    dependencies=[Depends(require_role("admin"))],`,
+    `    prefix="/admin",`,
+    `)`,
+  ].join('\n'), 'python', 'api/items.py');
+  assert.deepEqual(r.routers, { router: '/items', admin: '/admin' });
+});
+
 test('Go: grouped imports and http.HandleFunc endpoints', () => {
   const r = extract(`package main\nimport (\n  "net/http"\n  "example.com/app/store"\n)\nfunc main() { http.HandleFunc("/health", h) }\n`, 'go', 'cmd/main.go');
   assert.deepEqual(r.imports.map((i) => i.spec), ['net/http', 'example.com/app/store']);

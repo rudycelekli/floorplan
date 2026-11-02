@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **FastAPI router prefixes after `Depends(...)`:** a router made as `APIRouter(dependencies=[Depends(get_current_user)], prefix="/items")` lost its prefix, so its endpoints showed as `/{item_id}` instead of `/items/{item_id}`. The prefix is now found wherever it comes in the call. Fixed by @rudycelekli.
+
 ## 0.6.1 (2026-11-01)
 
 - **Fewer false alarms in Health** (thanks to the user who reported these):
