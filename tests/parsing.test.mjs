@@ -6,6 +6,14 @@ import { lib } from './helpers.mjs';
 const { extract, flattenTemplates, cleanDoc } = await lib('extract.mjs');
 const routes = (src, lang, file) => extract(src, lang, file).routes.map((r) => `${r.method} ${r.path}`);
 
+test('Next.js app router: methods exported by name from a list (NextAuth, Auth.js)', () => {
+  const file = 'web/app/api/auth/[...nextauth]/route.ts';
+  assert.deepEqual(routes(`const handler = NextAuth(options);\nexport { handler as GET, handler as POST };\n`, 'typescript', file),
+    ['GET /api/auth/[...nextauth]', 'POST /api/auth/[...nextauth]']);
+  assert.deepEqual(routes(`import { handlers } from '@/auth';\nexport const { GET, POST } = handlers;\n`, 'typescript', file),
+    ['GET /api/auth/[...nextauth]', 'POST /api/auth/[...nextauth]']);
+});
+
 test('JavaScript: imports and Express endpoints', () => {
   const r = extract([
     `import express from 'express';`,

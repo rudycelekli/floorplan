@@ -199,6 +199,10 @@ function extractJs(src, filePath) {
   if (next) {
     const p = '/' + next[1].split('/').filter((s) => s && !/^\(.*\)$/.test(s) && !s.startsWith('@')).join('/');
     const methods = all(/export\s+(?:async\s+)?(?:function|const)\s+(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\b/g, code).map((m) => m[1]);
+    // export { handler as GET, handler as POST } (NextAuth), export const { GET, POST } = handlers (Auth.js)
+    for (const m of all(/export\s+(?:const\s+)?\{([^}]*)\}/g, code)) {
+      for (const part of m[1].split(',')) { const name = /(?:^|\sas\s+|:\s*)(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)$/.exec(part.trim())?.[1]; if (name) methods.push(name); }
+    }
     for (const method of methods.length ? methods : ['ANY']) routes.push({ method, path: p, var: null, line: 1, framework: 'next' });
   }
 

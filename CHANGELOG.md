@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **NextAuth and Auth.js routes show their methods:** a Next.js route file that exports its handlers from a list (`export { handler as GET, handler as POST }`, or `export const { GET, POST } = handlers`) showed as a single `ANY` endpoint. It now shows `GET` and `POST`, so requests are matched by method. Fixed by @rudycelekli.
+
 ## 0.6.1 (2026-11-01)
 
 - **Fewer false alarms in Health** (thanks to the user who reported these):
