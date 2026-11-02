@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **`@/` imports aren't outside packages:** when the `@` alias is set up in `vite.config` or a webpack config rather than in `tsconfig.json`, imports like `@/components/Button` showed up as an outside package called `@/components`, with no line to the file. They now link to the app's `src/` folder, the usual meaning of `@`, and are never listed as a package. Fixed by @rudycelekli.
+
 ## 0.6.1 (2026-11-01)
 
 - **Fewer false alarms in Health** (thanks to the user who reported these):

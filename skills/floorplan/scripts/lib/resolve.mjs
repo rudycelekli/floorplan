@@ -96,6 +96,14 @@ export function createResolver(root, files) {
       for (const e of entries) { if (typeof e !== 'string') continue; const hit = tryJsFile(P.join(ws.dir, e)); if (hit) return { file: hit }; }
     }
     if (NODE_BUILTINS.has(pkgName)) return { builtin: true };
+    // `@/…` with no tsconfig alias for it is set up in a bundler config (vite.config, webpack), which isn't
+    // read here. It's never an outside package (those are @scope/name); by convention it is the app's src/
+    if (spec.startsWith('@/')) {
+      let dir = P.dirname(from);
+      while (dir !== '.' && !fileSet.has(`${dir}/package.json`)) dir = P.dirname(dir);
+      const hit = tryJsFile(P.join(dir, 'src', spec.slice(2)));
+      return hit ? { file: hit } : { unresolved: true };
+    }
     if (/^[@a-z0-9]/i.test(pkgName)) return { external: pkgName, eco: 'npm' };
     return { unresolved: true };
   };

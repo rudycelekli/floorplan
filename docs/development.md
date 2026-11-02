@@ -92,6 +92,7 @@ The tests use Node's built-in test runner, so there's nothing to install (`npm t
 | `phone.test.mjs` | phone and tablet layout: the top bar wraps instead of overflowing, icon-only buttons keep a name, 44 px touch targets, the details sheet that opens when a box is tapped, the zoom buttons in the top row, the folding description and the AI-tool note shown only while asking (checks on the built page, not a real screen) |
 | `ask.test.mjs` | asking through Claude Code or Codex: which one is used, read-only, follow-ups, sign-in errors (stand-in CLIs in `fixtures/fake-cli/`) |
 | `agents.test.mjs` | telling Claude Code from Codex, and what a map built by each records and writes |
+| `bundler-alias.test.mjs` | `@/` imports set up in a bundler config: linked to the app's `src/`, never an outside package |
 | `release.test.mjs` | the version agrees across both plugins' `plugin.json`, the README badge, the changelog and `CHECKSUMS.txt` |
 | `supply-chain.test.mjs` | what the plugin can do stays what [Is it safe to install?](is-it-safe.md) says: no hooks, MCP servers or dependencies, one outbound request, a fixed list of programs and pre-approved scripts, no code loaded at run time, the vendored layout engine unchanged |
 | `touch.test.mjs` | touch gestures: a drag follows one finger and ends on a cancelled touch, two-finger pinch and pan, nothing re-fits the map mid-gesture (checks on the built page, not a real screen) |
