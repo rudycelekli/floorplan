@@ -64,6 +64,20 @@ test('Go: grouped imports and http.HandleFunc endpoints', () => {
   assert.deepEqual(r.routes.map((x) => `${x.method} ${x.path}`), ['ANY /health']);
 });
 
+test('Go 1.22: the method and path in a ServeMux pattern', () => {
+  const r = extract([
+    `package main`,
+    `func main() {`,
+    `  mux := http.NewServeMux()`,
+    `  mux.HandleFunc("GET /api/items", listItems)`,
+    `  mux.HandleFunc("POST /api/items/{id}", saveItem)`,
+    `  mux.Handle("GET /{$}", home)`,
+    `  mux.HandleFunc("/healthz", health)`,
+    `}`,
+  ].join('\n'), 'go', 'cmd/server/main.go');
+  assert.deepEqual(r.routes.map((x) => `${x.method} ${x.path}`), ['GET /api/items', 'POST /api/items/{id}', 'GET /', 'ANY /healthz']);
+});
+
 test('web requests: fetch with template strings and axios with a method', () => {
   const r = extract([
     'export const load = (id) => fetch(`/api/orders/${id}`);',

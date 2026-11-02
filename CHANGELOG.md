@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Go 1.22 endpoints found:** routes written the Go 1.22 way, with the method in the pattern (`mux.HandleFunc("POST /api/items/{id}", saveItem)`), were missing from the map. They now show up with their method and path. Fixed by @rudycelekli.
+
 ## 0.6.1 (2026-11-01)
 
 - **Fewer false alarms in Health** (thanks to the user who reported these):

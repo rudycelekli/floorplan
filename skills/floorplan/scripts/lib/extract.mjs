@@ -408,10 +408,11 @@ function extractGo(src) {
   for (const m of all(/^func\s+(?:\([^)]*\)\s*)?([A-Z]\w*)/gm, code)) symbols.push({ name: m[1], kind: 'function', line: at(m.index) });
   for (const m of all(/^type\s+([A-Z]\w*)\s+(struct|interface)?/gm, code)) symbols.push({ name: m[1], kind: m[2] || 'type', line: at(m.index) });
   const routes = [];
-  for (const m of all(/\.(HandleFunc|Handle|GET|POST|PUT|PATCH|DELETE|Get|Post|Put|Patch|Delete)\(\s*"(\/[^"]*)"/g, code)) {
-    const method = /^handle/i.test(m[1]) ? 'ANY' : m[1].toUpperCase();
-    const p = m[2].replace(/^(GET|POST|PUT|PATCH|DELETE)\s+/, '');
-    routes.push({ method, path: p, var: null, line: at(m.index) });
+  // Go 1.22's ServeMux takes the method in the pattern: mux.HandleFunc("POST /items/{id}", h),
+  // and {$} only marks the end of the path
+  for (const m of all(/\.(HandleFunc|Handle|GET|POST|PUT|PATCH|DELETE|Get|Post|Put|Patch|Delete)\(\s*"(?:([A-Z]+)\s+)?(\/[^"]*)"/g, code)) {
+    const method = /^handle/i.test(m[1]) ? m[2] || 'ANY' : m[1].toUpperCase();
+    routes.push({ method, path: m[3].replace(/\{\$\}$/, ''), var: null, line: at(m.index) });
   }
   const { calls, hosts } = extractCalls(code, at, { skip: /\.(HandleFunc|Handle|GET|POST)\(/ });
   return { imports, symbols, routes, mounts: [], calls, hosts };
