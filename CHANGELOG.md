@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **SvelteKit and Nuxt imports connect:** imports through SvelteKit's `$lib` and Nuxt's `~` and `@` (and `~~`, `@@`) weren't linked to the files they point at, because both frameworks set these up in a settings file they generate and keep out of git. A Nuxt `@/utils/…` import even showed up as an outside package. They now link to the right files, including Nuxt 4's `app/` folder. Fixed by @rudycelekli.
+
 ## 0.6.1 (2026-11-01)
 
 - **Fewer false alarms in Health** (thanks to the user who reported these):

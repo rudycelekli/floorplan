@@ -49,6 +49,32 @@ export function createResolver(root, files) {
     nearestCache.set(dir, found);
     return found;
   };
+  // SvelteKit and Nuxt set up their aliases in a tsconfig they generate (.svelte-kit/, .nuxt/), which isn't
+  // in git: $lib is src/lib beside svelte.config.js; ~ and @ are a Nuxt app's source folder (app/ in Nuxt 4),
+  // ~~ and @@ its project folder
+  const nearestConfigCache = new Map();
+  const nearestConfig = (dir, names) => {
+    const key = dir + '|' + names[0];
+    if (!nearestConfigCache.has(key)) {
+      const here = names.some((n) => fileSet.has(dir === '.' ? n : `${dir}/${n}`));
+      nearestConfigCache.set(key, here ? dir : dir === '.' || dir === '' ? null : nearestConfig(P.dirname(dir), names));
+    }
+    return nearestConfigCache.get(key);
+  };
+  const SVELTE_CONFIG = ['svelte.config.js', 'svelte.config.ts', 'svelte.config.mjs', 'svelte.config.cjs'];
+  const NUXT_CONFIG = ['nuxt.config.ts', 'nuxt.config.js', 'nuxt.config.mjs'];
+  const frameworkAlias = (from, spec) => {
+    if (spec === '$lib' || spec.startsWith('$lib/')) {
+      const kit = nearestConfig(P.dirname(from), SVELTE_CONFIG);
+      return kit == null ? null : tryJsFile(P.join(kit, 'src/lib', spec.slice(4)));
+    }
+    const nuxt = /^(~~|@@|~|@)(\/|$)/.exec(spec);
+    const base = nuxt && nearestConfig(P.dirname(from), NUXT_CONFIG);
+    if (base == null) return null;
+    const rest = spec.slice(nuxt[1].length);
+    return (nuxt[1].length === 1 && tryJsFile(P.join(base, 'app', rest))) || tryJsFile(P.join(base, rest));
+  };
+
   const workspacePkgs = new Map();
   for (const dir of dirsWith('package.json')) {
     const pj = readJsonLoose(path.join(root, dir, 'package.json'));
@@ -84,6 +110,8 @@ export function createResolver(root, files) {
       }
       if (cfg.hasBaseUrl) { const hit = tryJsFile(P.join(cfg.baseDir, spec)); if (hit) return { file: hit }; }
     }
+    const aliased = frameworkAlias(from, spec);
+    if (aliased) return { file: aliased };
     if (spec.startsWith('node:')) return { builtin: true };
     const parts = spec.split('/');
     const pkgName = spec.startsWith('@') ? parts.slice(0, 2).join('/') : parts[0];

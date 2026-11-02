@@ -79,6 +79,7 @@ The tests use Node's built-in test runner, so there's nothing to install (`npm t
 |---|---|
 | `parsing.test.mjs` | imports, endpoints, web requests and doc comments, per language and framework |
 | `helpers-lib.test.mjs` | globs, file types, command-line flags, fallback names |
+| `framework-aliases.test.mjs` | imports through SvelteKit's `$lib` and Nuxt's `~`, `@`, `~~` and `@@`, which those frameworks set up outside git |
 | `secrets.test.mjs` | Health finds secrets, masks them, and ignores placeholders |
 | `health.test.mjs` | which endpoints Health calls open to anyone (FastAPI sample in `fixtures/`) |
 | `stack-health.test.mjs` | Health's checks for Supabase row-level security, Firebase rules, Stripe webhook signatures, secret keys in public variables and CORS, with look-alikes each must leave alone, and a whole sample app done wrong and done right |
