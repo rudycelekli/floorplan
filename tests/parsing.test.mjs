@@ -45,6 +45,14 @@ test('Flask: blueprint prefix, methods list and handler docstring', () => {
   assert.equal(r.doc, 'Order endpoints.');
 });
 
+test('Koa and Hono: a prefix set where the router is made applies to its routes', async () => {
+  const { resolveRoutes } = await lib('routes.mjs');
+  const endpoints = (src, p) => resolveRoutes([{ path: p, lang: 'javascript', ...extract(src, 'javascript', p) }]).map((x) => `${x.method} ${x.path}`);
+  assert.deepEqual(endpoints(`const router = new Router({ prefix: '/users' });\nrouter.get('/:id', show);\n`, 'server/users.js'), ['GET /users/:id']);
+  assert.deepEqual(endpoints(`const router = new Router();\nrouter.prefix('/orders');\nrouter.post('/', create);\n`, 'server/orders.js'), ['POST /orders']);
+  assert.deepEqual(endpoints(`const app = new Hono().basePath('/api');\napp.get('/books', list);\n`, 'server/index.ts'), ['GET /api/books']);
+});
+
 test('FastAPI: router prefix and path parameters', () => {
   const r = extract([
     `from fastapi import APIRouter`,

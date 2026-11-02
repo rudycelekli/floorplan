@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Koa and Hono prefixes:** a prefix set where the router is made (`new Router({ prefix: '/users' })` or `router.prefix('/users')` in Koa, `new Hono().basePath('/api')`) was left off its endpoints, so the map showed `/:id` instead of `/users/:id` and the website's requests couldn't be linked. Fixed by @rudycelekli.
+
 ## 0.6.1 (2026-11-01)
 
 - **Fewer false alarms in Health** (thanks to the user who reported these):

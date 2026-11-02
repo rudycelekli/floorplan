@@ -194,6 +194,12 @@ function extractJs(src, filePath) {
     if (args.length) mounts.push({ prefix: m[3], var: args[args.length - 1], line: at(m.index), ...(args.length > 1 ? { mw: args.slice(0, -1).map((s) => s.split('.').pop()) } : {}) });
   }
 
+  // a prefix set where a router is made, for every route on it: new Router({ prefix: '/users' }) or
+  // router.prefix('/users') (Koa), new Hono().basePath('/api')
+  const routers = {};
+  for (const m of all(/\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*(?::[^=\n]+)?=\s*new\s+(?:Router\(\s*\{[^}]*?\bprefix\s*:\s*["'`]([^"'`]*)["'`]|Hono\s*(?:<[^>\n]*>)?\([^)]*\)\s*\.basePath\(\s*["'`]([^"'`]*)["'`])/g, code)) routers[m[1]] = m[2] ?? m[3];
+  for (const m of all(/\b([A-Za-z_$][\w$]*)\.prefix\(\s*["'`]([^"'`]*)["'`]\s*\)/g, code)) routers[m[1]] = m[2];
+
   // Next.js app/pages API routes, derived from the file path
   const next = /(?:^|\/)(?:src\/)?app\/(.*?)\/?route\.(?:t|j)sx?$/.exec(filePath) || /(?:^|\/)(?:src\/)?pages\/(api\/.*?)(?:\/index)?\.(?:t|j)sx?$/.exec(filePath);
   if (next) {
@@ -210,7 +216,7 @@ function extractJs(src, filePath) {
   for (const c of wrapperCalls(code, at)) if (!seenCall.has(`${c.line}|${c.path}`)) calls.push(c);
   const callables = /\bhttpsCallable\b/.test(code) ? callableCalls(code, at) : { calls: [], wrappers: [] };
   calls.push(...callables.calls);
-  return { imports, symbols, routes, mounts, calls, hosts, ...(triggers.length ? { triggers } : {}), ...(callables.wrappers.length ? { callableWrappers: callables.wrappers } : {}) };
+  return { imports, symbols, routes, mounts, calls, hosts, routers, ...(triggers.length ? { triggers } : {}), ...(callables.wrappers.length ? { callableWrappers: callables.wrappers } : {}) };
 }
 
 // ---------- Firebase Cloud Functions ----------
