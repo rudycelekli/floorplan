@@ -31,6 +31,18 @@ export function createResolver(root, files) {
         const base = fileSet.has(extFile) ? loadTsconfig(extFile) : null;
         if (base) { opts = base.raw; optsDir = base.optsDir; }
       }
+      // a solution-style tsconfig.json (Vite's templates) keeps its settings in the configs it references
+      // ({ "files": [], "references": [{ "path": "./tsconfig.app.json" }, …] }): use the first with aliases
+      if (!opts.paths && !opts.baseUrl && Array.isArray(json.references)) {
+        tsconfigCache.set(file, null); // a reference back to this file finds nothing
+        for (const ref of json.references) {
+          if (typeof ref?.path !== 'string') continue;
+          const p = P.normalize(P.join(dir, ref.path));
+          const refFile = p.endsWith('.json') ? p : `${p}/tsconfig.json`;
+          const sub = fileSet.has(refFile) ? loadTsconfig(refFile) : null;
+          if (sub && (sub.paths.length || sub.hasBaseUrl)) { opts = sub.raw; optsDir = sub.optsDir; break; }
+        }
+      }
       const baseDir = opts.baseUrl ? P.normalize(P.join(optsDir, opts.baseUrl)) : optsDir;
       cfg = { raw: opts, optsDir, baseDir, hasBaseUrl: !!opts.baseUrl, paths: Object.entries(opts.paths || {}) };
     }

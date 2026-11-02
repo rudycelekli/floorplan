@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Path aliases in Vite-style projects:** when `tsconfig.json` only points to other configs (`"references": [{ "path": "./tsconfig.app.json" }]`, as Vite's templates set it up) and the `@/…` alias lives in `tsconfig.app.json`, imports like `@/lib/utils` weren't linked to their files and showed up as an outside package called `@/lib`. Floorplan now looks in the referenced configs too. Fixed by @rudycelekli.
+
 ## 0.6.1 (2026-11-01)
 
 - **Fewer false alarms in Health** (thanks to the user who reported these):
