@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Express routers under any name:** endpoints on a router or app with a name of your own (`const api = express.Router()`, then `api.get('/users', …)`) were missing from the map, because only names like `app` and `router` were recognised. Any variable the file makes with `express()`, `express.Router()`, `Router()`, `new Hono()` or `fastify()` now counts. Fixed by @rudycelekli.
+
 ## 0.6.1 (2026-11-01)
 
 - **Fewer false alarms in Health** (thanks to the user who reported these):

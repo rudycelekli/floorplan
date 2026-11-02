@@ -20,6 +20,19 @@ test('JavaScript: imports and Express endpoints', () => {
   assert.equal(r.routes[0].var, 'router');
 });
 
+test('Express: a router under any name, not just router or app', () => {
+  const r = extract([
+    `const express = require('express');`,
+    `const api = express.Router();`,
+    `api.get('/users', listUsers);`,
+    `api.post('/users', createUser);`,
+    `client.get('/users');`,
+  ].join('\n'), 'javascript', 'server/api.js');
+  assert.deepEqual(r.routes.map((x) => `${x.method} ${x.path} ${x.var}`), ['GET /users api', 'POST /users api']);
+  // a route definition isn't a request; the client's call still is
+  assert.deepEqual(r.calls.map((c) => `${c.method} ${c.path} :${c.line}`), ['GET /users :5']);
+});
+
 test('Next.js app router: each exported method is an endpoint at the folder path', () => {
   assert.deepEqual(
     routes(`export async function GET(req) { return Response.json([]) }\nexport async function POST(req) {}\n`, 'typescript', 'web/app/api/orders/route.ts'),

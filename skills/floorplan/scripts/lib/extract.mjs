@@ -179,11 +179,13 @@ function extractJs(src, filePath) {
   // Next.js route handlers / module exports
   for (const m of all(/^[ \t]*module\.exports\s*=\s*([A-Za-z_$][\w$]*)?/gm, code)) addSym(m[1] || 'module.exports', 'default', m.index, true);
 
-  // Express / Koa / Hono style routes and mounts
+  // Express / Koa / Hono style routes and mounts, on the usual names or on any variable this file
+  // makes a router or app with (const api = express.Router())
+  const made = new Set(all(/\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*(?::[^=\n]+)?=\s*(?:new\s+)?(?:express(?:\.Router)?|Router|Hono|fastify|Fastify)\s*(?:<[^>\n]*>)?\s*\(/g, code).map((m) => m[1]));
   const routes = [];
   const mounts = [];
   for (const m of all(/\b([A-Za-z_$][\w$]*)\.(get|post|put|patch|delete|all|options|head)\(\s*["'`](\/[^"'`]*)["'`]/g, code)) {
-    if (!/^(app|server|fastify|hono|routes?|[a-z]*Router|router)$/.test(m[1])) continue;
+    if (!/^(app|server|fastify|hono|routes?|[a-z]*Router|router)$/.test(m[1]) && !made.has(m[1])) continue;
     routes.push({ method: m[2].toUpperCase(), path: m[3], var: m[1], line: at(m.index) });
   }
   for (const m of all(/\b([A-Za-z_$][\w$]*)\.(use|route)\(\s*["'`](\/[^"'`]*)["'`]\s*,([^\n;]*)/g, code)) {
@@ -205,7 +207,9 @@ function extractJs(src, filePath) {
   const triggers = /firebase-functions/.test(code) ? firebaseFunctions(code, at, routes, mounts) : [];
 
   const serverLine = /\b\w+\.(use|route)\(\s*["'`]\/|\b(?:app|server|fastify|hono|routes?|router|[a-z]+Router)\.(?:get|post|put|patch|delete|all|options|head)\(\s*["'`]\//;
-  const { calls, hosts } = extractCalls(code, at, { skip: serverLine });
+  // a route on one of those variables is a definition, not a request
+  const madeLine = new RegExp(`(?<![\\w$.])(?:${[...made].map((v) => v.replace(/\$/g, '\\$')).join('|') || '(?!)'})\\.(?:get|post|put|patch|delete|all|options|head)\\(\\s*["'\`]\\/`);
+  const { calls, hosts } = extractCalls(code, at, { skip: { test: (l) => serverLine.test(l) || madeLine.test(l) } });
   const seenCall = new Set(calls.map((c) => `${c.line}|${c.path}`));
   for (const c of wrapperCalls(code, at)) if (!seenCall.has(`${c.line}|${c.path}`)) calls.push(c);
   const callables = /\bhttpsCallable\b/.test(code) ? callableCalls(code, at) : { calls: [], wrappers: [] };
