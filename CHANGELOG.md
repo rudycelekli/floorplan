@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Rust workspaces connect:** in a Cargo workspace, a crate using another one (`use shop_core::models::Order`) was listed as an outside crate called `shop_core`, with no line to it. Floorplan now reads each crate's name from its `Cargo.toml` and links the import to the file it names, or to the crate's `lib.rs`. Fixed by @rudycelekli.
+
 ## 0.6.1 (2026-11-01)
 
 - **Fewer false alarms in Health** (thanks to the user who reported these):

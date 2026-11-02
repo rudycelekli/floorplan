@@ -192,6 +192,23 @@ export function createResolver(root, files) {
 
   // ---- Rust ----
   const crateRoots = dirsWith('Cargo.toml').map((d) => (d === '.' ? 'src' : `${d}/src`)).sort((a, b) => b.length - a.length);
+  // the workspace's own crates, by the name code uses for them (package shop-core is used as shop_core)
+  const workspaceCrates = new Map();
+  for (const dir of dirsWith('Cargo.toml')) {
+    let toml = '';
+    try { toml = fs.readFileSync(path.join(root, dir, 'Cargo.toml'), 'utf8'); } catch {}
+    const table = (t) => new RegExp(`^\\[${t}\\][^\\n]*\\n([\\s\\S]*?)(?=^\\[|(?![\\s\\S]))`, 'm').exec(toml)?.[1] || '';
+    const name = /^\s*name\s*=\s*"([^"]+)"/m.exec(table('lib'))?.[1] || /^\s*name\s*=\s*"([^"]+)"/m.exec(table('package'))?.[1];
+    if (name) workspaceCrates.set(name.replace(/-/g, '_'), dir === '.' ? 'src' : `${dir}/src`);
+  }
+  /** The file a path inside a crate points at: crate/src/a/b.rs or a/b/mod.rs, the longest that exists. */
+  const inCrate = (cr, rest) => {
+    for (let k = rest.length; k >= 1; k--) {
+      const b = `${cr}/${rest.slice(0, k).join('/')}`;
+      for (const c of [b + '.rs', b + '/mod.rs']) if (fileSet.has(c)) return c;
+    }
+    return null;
+  };
   const resolveRust = (from, imp) => {
     const dir = P.dirname(from);
     const stem = P.basename(from, '.rs');
@@ -204,14 +221,16 @@ export function createResolver(root, files) {
     if (segs[0] === 'crate') {
       const cr = crateRoots.find((r) => from.startsWith(r + '/'));
       if (!cr) return { unresolved: true };
-      const rest = segs.slice(1);
-      for (let k = rest.length; k >= 1; k--) {
-        const b = `${cr}/${rest.slice(0, k).join('/')}`;
-        for (const c of [b + '.rs', b + '/mod.rs']) if (fileSet.has(c)) return { file: c };
-      }
-      return { unresolved: true };
+      const hit = inCrate(cr, segs.slice(1));
+      return hit ? { file: hit } : { unresolved: true };
     }
     if (RUST_STD.has(segs[0])) return { builtin: true };
+    // another crate of this workspace: the module named, or else the crate's lib.rs
+    const ws = workspaceCrates.get(segs[0]);
+    if (ws) {
+      const hit = inCrate(ws, segs.slice(1)) || (fileSet.has(`${ws}/lib.rs`) ? `${ws}/lib.rs` : null);
+      return hit ? { file: hit } : { unresolved: true };
+    }
     return { external: segs[0], eco: 'cargo' };
   };
 
