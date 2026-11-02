@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { lib } from './helpers.mjs';
 
 const { extract, flattenTemplates, cleanDoc } = await lib('extract.mjs');
+const { findIssues } = await lib('health.mjs');
 const routes = (src, lang, file) => extract(src, lang, file).routes.map((r) => `${r.method} ${r.path}`);
 
 test('JavaScript: imports and Express endpoints', () => {
@@ -25,6 +26,24 @@ test('Next.js app router: each exported method is an endpoint at the folder path
     routes(`export async function GET(req) { return Response.json([]) }\nexport async function POST(req) {}\n`, 'typescript', 'web/app/api/orders/route.ts'),
     ['GET /api/orders', 'POST /api/orders'],
   );
+});
+
+test('Express: route chains, one endpoint per method on the same path', () => {
+  const src = [
+    `const router = express.Router();`,
+    `router.route('/books')`,
+    `  .get((req, res) => res.json(list(req.query)))`,
+    `  .post(requireLogin(), createBook);`,
+    `router.route('/books/:id').put(updateUser).delete(removeBook);`,
+  ].join('\n');
+  const r = extract(src, 'javascript', 'server/routes/books.js');
+  assert.deepEqual(r.routes.map((x) => `${x.method} ${x.path} :${x.line}`),
+    ['GET /books :3', 'POST /books :4', 'PUT /books/:id :5', 'DELETE /books/:id :5']);
+  assert.equal(r.routes[0].var, 'router');
+  // Health reads each link's own arguments: only the POST has a check in front of its handler
+  const seen = findIssues(src, { path: 'server/routes/books.js', category: 'code', lang: 'javascript', routes: r.routes })
+    .filter((x) => x.k === 'route').map((x) => `${x.method} ${x.guard || '-'}`);
+  assert.deepEqual(seen, ['GET -', 'POST requireLogin', 'PUT -', 'DELETE -']);
 });
 
 test('Flask: blueprint prefix, methods list and handler docstring', () => {

@@ -338,6 +338,26 @@ function jsRoutes(src, f, out) {
       out.push(rec);
       return;
     }
+    if (r.chain) {
+      // a link in a route chain, router.route('/x').post(requireAuth, create): that call's own arguments,
+      // all but the handler (the last one, or the first written inline)
+      const line = lines[r.line - 1];
+      const call = new RegExp(`\\.\\s*${r.method.toLowerCase()}\\s*\\(`).exec(line);
+      const rest = [line.slice(call ? call.index + call[0].length : 0), ...lines.slice(r.line, r.line + 4)].join('\n');
+      let depth = 1, j = 0;
+      for (; j < rest.length && depth; j++) { if (rest[j] === '(') depth++; else if (rest[j] === ')') depth--; }
+      const own = rest.slice(0, depth ? j : j - 1);
+      const fn = /(?:async\s*)?(?:\(\s*req\b|function\b|\breq\s*=>|\(\s*\{)/.exec(own);
+      const args = fn ? own.slice(0, fn.index) : own.slice(0, Math.max(0, own.lastIndexOf(',')));
+      const mw = (args.match(/[A-Za-z_$][\w$.]*/g) || []).map((x) => x.split('.').pop()).find(isGuardName);
+      const prior = uses.find((u) => u.v === r.var && u.line < r.line);
+      if (mw) Object.assign(rec, { guard: mw, via: 'middleware' });
+      else if (prior) Object.assign(rec, { guard: prior.name, via: 'router' });
+      else if (INLINE_CHECK.test(own)) rec.via = 'inline';
+      if (SIGNATURE_CHECK.test(own)) rec.signed = true;
+      out.push(rec);
+      return;
+    }
     if (r.framework === 'next') {
       if (NEXT_GUARD.test(src)) rec.via = 'inline';
       if (SIGNATURE_CHECK.test(src)) rec.signed = true;

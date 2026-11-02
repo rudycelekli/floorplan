@@ -193,6 +193,18 @@ function extractJs(src, filePath) {
     const args = m[4].replace(/\)\s*$/, '').split(',').map((s) => s.trim()).filter((s) => /^[A-Za-z_$][\w$.]*$/.test(s));
     if (args.length) mounts.push({ prefix: m[3], var: args[args.length - 1], line: at(m.index), ...(args.length > 1 ? { mw: args.slice(0, -1).map((s) => s.split('.').pop()) } : {}) });
   }
+  // app.route('/books').get(list).post(create): one path, a method per call in the chain
+  for (const m of all(/\b([A-Za-z_$][\w$]*)\.route\(\s*["'`](\/[^"'`]*)["'`]\s*\)/g, code)) {
+    if (!/^(app|server|routes?|[a-z]*Router|router)$/.test(m[1])) continue;
+    const link = /\s*\.\s*(get|post|put|patch|delete|all|options|head)\s*\(/y;
+    let j = m.index + m[0].length;
+    for (let c; (link.lastIndex = j, c = link.exec(code));) {
+      routes.push({ method: c[1].toUpperCase(), path: m[2], var: m[1], line: at(c.index + c[0].indexOf(c[1])), chain: true });
+      // past the call's own arguments, to the next link in the chain
+      let depth = 1;
+      for (j = link.lastIndex; j < code.length && depth; j++) { if (code[j] === '(') depth++; else if (code[j] === ')') depth--; }
+    }
+  }
 
   // Next.js app/pages API routes, derived from the file path
   const next = /(?:^|\/)(?:src\/)?app\/(.*?)\/?route\.(?:t|j)sx?$/.exec(filePath) || /(?:^|\/)(?:src\/)?pages\/(api\/.*?)(?:\/index)?\.(?:t|j)sx?$/.exec(filePath);

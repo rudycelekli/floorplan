@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Express route chains found:** endpoints written as a chain on one path (`router.route('/books').get(list).post(requireLogin, create)`) were missing from the map. Each method in the chain is now its own endpoint, and Health reads the checks in front of each one. Fixed by @rudycelekli.
+
 ## 0.6.1 (2026-11-01)
 
 - **Fewer false alarms in Health** (thanks to the user who reported these):
