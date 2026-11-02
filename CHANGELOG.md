@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **A router's prefix stays on that router:** when a router and the app that mounts it share a file (`app.use('/api', router)`), the app's own endpoints were put under `/api` too, and any check in that line (`app.use('/admin', requireStaff, router)`) was counted for them, so an open endpoint on the app could be left out of Health. Now only the router's endpoints get them, and a router inside an app served by a Firebase function gets both prefixes. Fixed by @rudycelekli.
+
 ## 0.6.1 (2026-11-01)
 
 - **Fewer false alarms in Health** (thanks to the user who reported these):

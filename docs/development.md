@@ -87,6 +87,7 @@ The tests use Node's built-in test runner, so there's nothing to install (`npm t
 | `blueprint-change.test.mjs` | changing a blueprint from the map: the agent's updated plan is checked, saved and highlighted, retried once when it fails the checks, and undone (stand-in CLI in `fixtures/fake-cli/`) |
 | `large-files.test.mjs` | files over the scan's size limit stay on the map with their line count, and the scan, Health and the map say they weren't read |
 | `sample-app.test.mjs` | a whole map of a two-repo shop: endpoints, cross-repo requests, Health, offline map, no secret values written, updates |
+| `mounts.test.mjs` | prefixes and checks from mounting a router in the same file as the app, including an app served by a Firebase function |
 | `serve.test.mjs` | the map's server: 127.0.0.1 only, its own host names only, token and same-origin checks, nothing served from outside its folder |
 | `export.test.mjs` | exporting a copy to share: what's left out by default, the extras when asked, the Export button's endpoint |
 | `phone.test.mjs` | phone and tablet layout: the top bar wraps instead of overflowing, icon-only buttons keep a name, 44 px touch targets, the details sheet that opens when a box is tapped, the zoom buttons in the top row, the folding description and the AI-tool note shown only while asking (checks on the built page, not a real screen) |

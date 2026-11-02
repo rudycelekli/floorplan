@@ -18,9 +18,10 @@ function mountTarget(f, mount) {
   if (mount.spec) { const imp = imports.find((i) => i.spec === mount.spec); return imp ? { file: imp.files[0], v: '*' } : null; }
   const [head, attr] = mount.var.split('.');
   if (f.lang !== 'python') {
-    // JS: match the mounted name to the local binding of an import or require (every router can be called `router`)
+    // JS: match the mounted name to the local binding of an import or require (every router can be called `router`);
+    // a router made in this same file covers only its own routes, not the app's beside it
     const imp = imports.find((i) => i.locals && Object.hasOwn(i.locals, head));
-    return { file: imp ? imp.files[0] : f.path, v: '*' };
+    return imp ? { file: imp.files[0], v: '*' } : { file: f.path, v: head };
   }
   // First the import that binds the mounted name in this file: `from app.routes import campaigns as
   // campaign_routes` binds campaign_routes (not campaigns), and wins over `from app.platform import pricing`
@@ -52,16 +53,17 @@ export function resolveRoutes(files) {
     const t = mountTarget(f, mount);
     if (!t) continue;
     if (!mountsTo.has(t.file)) mountsTo.set(t.file, []);
-    mountsTo.get(t.file).push({ from: f.path, v: t.v, prefix: mount.prefix, mw: mount.mw || [] });
+    mountsTo.get(t.file).push({ from: f.path, v: t.v, prefix: mount.prefix, mw: mount.mw || [], ...(mount.on ? { on: mount.on } : {}) });
   }
   // Every prefix a file's routes live under, composing nested mounts (a router mounted into a router
   // that is itself mounted), e.g. app.use('/api', api) + api.use('/users', users) → /api/users.
   const outerPrefixes = (file, v, seen = new Set()) => {
     const ms = (mountsTo.get(file) || []).filter((m) => v == null || m.v === '*' || m.v === v);
-    if (!ms.length || seen.has(file)) return [''];
-    const next = new Set(seen).add(file);
+    if (!ms.length || seen.has(`${file}|${v}`)) return [''];
+    const next = new Set(seen).add(`${file}|${v}`);
     const out = [];
-    for (const m of ms) for (const p of m.from === file ? [''] : outerPrefixes(m.from, null, next)) out.push(joinPath(p, m.prefix));
+    // a router mounted on another one in the same file (app.use('/api', api)) sits under that one's prefixes
+    for (const m of ms) for (const p of m.from !== file ? outerPrefixes(m.from, null, next) : m.on && m.on !== v ? outerPrefixes(file, m.on, next) : ['']) out.push(joinPath(p, m.prefix));
     return [...new Set(out)];
   };
 
