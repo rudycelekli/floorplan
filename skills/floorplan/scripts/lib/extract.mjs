@@ -436,6 +436,11 @@ function extractRust(src) {
 
 // ---------- JVM ----------
 
+// a Spring mapping's path or paths: "/x", {"/a", "/b"} (Java) or ["/a", "/b"] (Kotlin)
+const PATHS = String.raw`([{[]\s*"[^"]*"(?:\s*,\s*"[^"]*")*\s*,?\s*[}\]]|"[^"]*")`;
+const NAMED_PATHS = new RegExp(String.raw`\b(?:value|path)\s*=\s*` + PATHS);
+const FIRST_PATHS = new RegExp(String.raw`^\s*` + PATHS);
+
 function extractJvm(src) {
   const code = stripCStyle(src);
   const at = lineIndex(code);
@@ -445,9 +450,16 @@ function extractJvm(src) {
   for (const m of all(/^\s*(?:public\s+|internal\s+)?(?:abstract\s+|final\s+|data\s+|sealed\s+|open\s+)*(class|interface|enum|record|object)\s+(\w+)/gm, code)) symbols.push({ name: m[2], kind: m[1], line: at(m.index) });
   const routes = [];
   const classPrefix = /@RequestMapping\(\s*(?:value\s*=\s*|path\s*=\s*)?"([^"]*)"[^)]*\)\s*(?:@\w+(?:\([^)]*\))?\s*)*(?:public\s+)?class/.exec(code)?.[1] || '';
-  for (const m of all(/@(Get|Post|Put|Patch|Delete|Request)Mapping\(\s*(?:value\s*=\s*|path\s*=\s*)?"([^"]*)"/g, code)) {
-    if (m[1] === 'Request' && m[2] === classPrefix) continue;
-    routes.push({ method: m[1] === 'Request' ? 'ANY' : m[1].toUpperCase(), path: classPrefix + m[2], var: null, line: at(m.index) });
+  // a method's mapping may leave the path out (a bare @GetMapping serves the class's own path), give it
+  // after other arguments (produces = …, value = "/x") or give several ({"/a", "/b"})
+  const onClass = /\s*(?:@\w+(?:\([^)]*\))?\s*)*(?:(?:public|internal|abstract|final|open|data)\s+)*class\b/y;
+  for (const m of all(/@(Get|Post|Put|Patch|Delete|Request)Mapping\b(?:\s*\(([^)]*)\))?/g, code)) {
+    onClass.lastIndex = m.index + m[0].length;
+    if (onClass.test(code)) continue; // the class's prefix, not an endpoint
+    const args = m[2] || '';
+    const list = NAMED_PATHS.exec(args)?.[1] ?? FIRST_PATHS.exec(args)?.[1] ?? '';
+    const paths = [...list.matchAll(/"([^"]*)"/g)].map((p) => p[1]);
+    for (const p of paths.length ? paths : ['']) routes.push({ method: m[1] === 'Request' ? 'ANY' : m[1].toUpperCase(), path: classPrefix + p, var: null, line: at(m.index) });
   }
   const { calls, hosts } = extractCalls(code, at, { skip: /@\w+Mapping/ });
   return { imports, symbols, routes, mounts: [], calls, hosts, pkg };

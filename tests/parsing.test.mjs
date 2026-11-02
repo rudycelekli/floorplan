@@ -82,3 +82,21 @@ test('doc comments: JSDoc is cleaned, license headers are ignored', () => {
   assert.equal(cleanDoc('/**\n * Lists orders.\n * @param x\n */'), 'Lists orders.');
   assert.equal(cleanDoc('# Copyright 2020 Example Corp'), null);
 });
+
+test('Spring: mappings without a path serve the class path, and paths after other arguments', () => {
+  assert.deepEqual(routes([
+    `@RestController`,
+    `@RequestMapping("/api/orders")`,
+    `public class OrderController {`,
+    `  @GetMapping`,
+    `  public List<Order> all() { return repo.findAll(); }`,
+    `  @PostMapping()`,
+    `  public Order create(@RequestBody Order o) { return repo.save(o); }`,
+    `  @GetMapping(produces = "application/json", value = "/{id}")`,
+    `  public Order one(@PathVariable long id) { return repo.get(id); }`,
+    `  @DeleteMapping({"/{id}", "/{id}/remove"})`,
+    `  public void remove(@PathVariable long id) {}`,
+    `}`,
+  ].join('\n'), 'java', 'src/main/java/com/acme/web/OrderController.java'),
+  ['GET /api/orders', 'POST /api/orders', 'GET /api/orders/{id}', 'DELETE /api/orders/{id}', 'DELETE /api/orders/{id}/remove']);
+});

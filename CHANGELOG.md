@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **More Spring endpoints found:** a mapping with no path of its own (`@GetMapping` or `@PostMapping()` on a method, serving the controller's path), a path given after other settings (`@GetMapping(produces = "application/json", value = "/{id}")`) and a list of paths (`@DeleteMapping({"/a", "/b"})`) were missing from the map. Fixed by @rudycelekli.
+
 ## 0.6.1 (2026-11-01)
 
 - **Fewer false alarms in Health** (thanks to the user who reported these):
