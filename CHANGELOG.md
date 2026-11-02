@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Git submodules are on the map:** a repo's submodules were left out entirely, because git lists a submodule as a single entry rather than its files. Each checked-out submodule is now scanned as a repo of its own, and code that uses it links to it. Fixed by @rudycelekli.
+
 ## 0.6.1 (2026-11-01)
 
 - **Fewer false alarms in Health** (thanks to the user who reported these):

@@ -190,6 +190,13 @@ function worktreeMain(dir) {
   return path.resolve(toPosix(gitdir).slice(0, idx));
 }
 
+/** Paths of the submodules a repo records (mode 160000 in its index). */
+function submodules(dir) {
+  const out = git(dir, ['ls-files', '--stage', '-z']);
+  if (!out) return [];
+  return out.split('\0').filter((e) => e.startsWith('160000 ')).map((e) => toPosix(e.slice(e.indexOf('\t') + 1)));
+}
+
 // ---------- discovery ----------
 
 /**
@@ -205,6 +212,8 @@ export function discover(root, { includeWorktrees = false, maxLooseFiles = 5000 
   const walk = (dir, depth) => {
     if (fs.existsSync(path.join(dir, '.git'))) {
       repos.push({ abs: dir, path: rel(root, dir), worktreeOf: worktreeMain(dir) });
+      // git lists a submodule as a single entry, not its files, so each checked-out one is a repo of its own
+      for (const sub of submodules(dir)) if (fs.existsSync(path.join(dir, sub, '.git'))) walk(path.join(dir, sub), depth + 1);
       return;
     }
     if (depth > 8) return;
